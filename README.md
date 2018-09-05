@@ -1,7 +1,7 @@
 HDFS for Go
 ===========
 
-[![GoDoc](https://godoc.org/github.com/colinmarc/hdfs/web?status.svg)](https://godoc.org/github.com/colinmarc/hdfs) [![build](https://travis-ci.org/colinmarc/hdfs.svg?branch=master)](https://travis-ci.org/colinmarc/hdfs)
+[![GoDoc](https://godoc.org/github.com/efirs/hdfs/web?status.svg)](https://godoc.org/github.com/efirs/hdfs) [![build](https://travis-ci.org/efirs/hdfs.svg?branch=master)](https://travis-ci.org/efirs/hdfs)
 
 This is a native golang client for hdfs. It connects directly to the namenode using
 the protocol buffers API.
@@ -76,12 +76,12 @@ Installing the library
 
 To install the library, once you have Go [all set up][2]:
 
-    $ go get -u github.com/colinmarc/hdfs
+    $ go get -u github.com/efirs/hdfs
 
 Installing the commandline client
 ---------------------------------
 
-Grab a tarball from the [releases page](https://github.com/colinmarc/hdfs/releases)
+Grab a tarball from the [releases page](https://github.com/efirs/hdfs/releases)
 and unzip it wherever you like.
 
 You'll want to add the following line to your `.bashrc` or `.profile`:
@@ -110,6 +110,6 @@ Acknowledgements
 
 This library is heavily indebted to [snakebite][3].
 
-[1]: https://godoc.org/github.com/colinmarc/hdfs
+[1]: https://godoc.org/github.com/efirs/hdfs
 [2]: https://golang.org/doc/install
 [3]: https://github.com/spotify/snakebite

@@ -2,7 +2,7 @@ os:
 - linux
 - osx
 language: go
-go_import_path: github.com/colinmarc/hdfs
+go_import_path: github.com/efirs/hdfs
 go: 1.x
 before_install:
 - git clone https://github.com/sstephenson/bats $HOME/bats
@@ -34,7 +34,7 @@ deploy:
   file: gohdfs-*.tar.gz
   file_glob: true
   on:
-    repo: colinmarc/hdfs
+    repo: efirs/hdfs
     tags: true
     all_branches: true
     condition: $HADOOP_DISTRO = cdh

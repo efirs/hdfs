@@ -7,7 +7,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/colinmarc/hdfs"
+	"github.com/efirs/hdfs"
 )
 
 const tailSearchSize int64 = 16384
