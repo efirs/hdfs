@@ -151,6 +151,10 @@ func (f *FileWriter) Write(b []byte) (int, error) {
 		return 0, io.ErrClosedPipe
 	}
 
+	if err := f.client.pickLeaseRenewerError(); err != nil {
+		return 0, err
+	}
+
 	if f.blockWriter == nil {
 		err := f.startNewBlock()
 		if err != nil {
@@ -182,6 +186,10 @@ func (f *FileWriter) Flush() error {
 		return io.ErrClosedPipe
 	}
 
+	if err := f.client.pickLeaseRenewerError(); err != nil {
+		return err
+	}
+
 	if f.blockWriter != nil {
 		return f.blockWriter.Flush()
 	}
@@ -195,6 +203,10 @@ func (f *FileWriter) Flush() error {
 func (f *FileWriter) Close() error {
 	if f.closed {
 		return io.ErrClosedPipe
+	}
+
+	if err := f.client.pickLeaseRenewerError(); err != nil {
+		return err
 	}
 
 	var lastBlock *hdfs.ExtendedBlockProto
