@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net"
+	"os"
 	"sync"
 	"time"
 
@@ -75,6 +77,7 @@ type namenodeHost struct {
 	address     string
 	lastError   error
 	lastErrorAt time.Time
+	writeError  bool
 }
 
 // NewNamenodeConnectionWithOptions creates a new connection to a namenode with
@@ -164,13 +167,26 @@ func (c *NamenodeConnection) resolveConnection() error {
 	return nil
 }
 
-func (c *NamenodeConnection) markFailure(err error) {
+func (c *NamenodeConnection) markFailureLow(err error, rw bool) {
 	if c.conn != nil {
 		c.conn.Close()
 		c.conn = nil
 	}
+	if rw && !c.host.writeError {
+		fmt.Fprintf(os.Stderr, "hdfs namenode write error: %+v %+v\n", c.host.address, err)
+		c.host.writeError = true
+		return
+	}
 	c.host.lastError = err
 	c.host.lastErrorAt = time.Now()
+}
+
+func (c *NamenodeConnection) markFailure(err error) {
+	c.markFailureLow(err, false)
+}
+
+func (c *NamenodeConnection) markTransientFailure(err error) {
+	c.markFailureLow(err, true)
 }
 
 // Execute performs an rpc call. It does this by sending req over the wire and
@@ -189,12 +205,17 @@ func (c *NamenodeConnection) Execute(method string, req proto.Message, resp prot
 
 		err = c.writeRequest(method, req)
 		if err != nil {
-			c.markFailure(err)
+			c.markTransientFailure(err)
 			continue
 		}
+		c.host.writeError = false
 
 		err = c.readResponse(method, resp)
 		if err != nil {
+			if err == io.EOF {
+				c.markTransientFailure(err)
+				continue
+			}
 			// Only retry on a standby exception.
 			if nerr, ok := err.(*NamenodeError); ok && nerr.exception == standbyExceptionClass {
 				c.markFailure(err)
