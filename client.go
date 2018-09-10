@@ -28,7 +28,7 @@ type leaseRenewer struct {
 // A Client represents a connection to an HDFS cluster
 type Client struct {
 	namenode *rpc.NamenodeConnection
-	defaults *hdfs.FsServerDefaultsProto
+	defaults atomic.Value
 
 	leaseRenewer
 }
@@ -223,8 +223,9 @@ func (c *Client) CopyToRemote(src string, dst string) error {
 }
 
 func (c *Client) fetchDefaults() (*hdfs.FsServerDefaultsProto, error) {
-	if c.defaults != nil {
-		return c.defaults, nil
+	d := c.defaults.Load()
+	if d != nil {
+		return d.(*hdfs.FsServerDefaultsProto), nil
 	}
 
 	req := &hdfs.GetServerDefaultsRequestProto{}
@@ -235,8 +236,9 @@ func (c *Client) fetchDefaults() (*hdfs.FsServerDefaultsProto, error) {
 		return nil, err
 	}
 
-	c.defaults = resp.GetServerDefaults()
-	return c.defaults, nil
+	r := resp.GetServerDefaults()
+	c.defaults.Store(r)
+	return r, nil
 }
 
 // Close terminates all underlying socket connections to remote server.
