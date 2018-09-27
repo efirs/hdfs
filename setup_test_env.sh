@@ -22,6 +22,8 @@ if [ ! -d "$HADOOP_HOME" ]; then
 
   echo "Extracting ${HADOOP_HOME}/hadoop.tar.gz into $HADOOP_HOME"
   tar zxf ${HADOOP_HOME}/hadoop.tar.gz --strip-components 1 -C $HADOOP_HOME
+
+  echo "<configuration><property><name>ipc.client.idlethreshold</name><value>1</value></property></configuration>" >${HADOOP_HOME}/etc/hadoop/core-site.xml
 fi
 
 MINICLUSTER_JAR=$(find $HADOOP_HOME -name "hadoop-mapreduce-client-jobclient*.jar" | grep -v tests | grep -v sources | head -1)
