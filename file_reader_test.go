@@ -45,6 +45,18 @@ func TestFileRead(t *testing.T) {
 	assert.EqualValues(t, time.Now().Month(), info.ModTime().Month())
 }
 
+func TestFileReadDelayed(t *testing.T) {
+	client := getClient(t)
+
+	_, err := client.Open("/_test/foo.txt")
+	require.NoError(t, err)
+
+	time.Sleep(30 * time.Second)
+
+	_, err = client.Open("/_test/foo.txt")
+	require.NoError(t, err)
+}
+
 func TestReadEmptyFile(t *testing.T) {
 	client := getClient(t)
 

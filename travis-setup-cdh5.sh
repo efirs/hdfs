@@ -107,6 +107,10 @@ sudo tee /etc/hadoop/conf.gohdfs/core-site.xml <<EOF
     <name>dfs.datanode.kerberos.principal</name>
     <value>dn/localhost@$KERBEROS_REALM</value>
   </property>
+  <property>
+    <name>ipc.client.idlethreshold</name>
+    <value>1</value>
+  </property>
 </configuration>
 EOF
 
