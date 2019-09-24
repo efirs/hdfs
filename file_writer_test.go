@@ -482,3 +482,33 @@ func TestFileAppendDeadlineBefore(t *testing.T) {
 	_, err = writer.Write([]byte("foo\n"))
 	assert.Error(t, err)
 }
+
+func TestFileWriteAfterIdleTime(t *testing.T) {
+	client := getClient(t)
+
+	baleet(t, "/_test/create/1.txt")
+	mkdirp(t, "/_test/create")
+	writer, err := client.Create("/_test/create/1.txt")
+	require.NoError(t, err)
+
+	n, err := writer.Write([]byte("foo"))
+	require.NoError(t, err)
+	assert.Equal(t, 3, n)
+
+	//Check that write after idle time doesn't fail
+	time.Sleep(90 * time.Second)
+
+	n, err = writer.Write([]byte("bar"))
+	require.NoError(t, err)
+	assert.Equal(t, 3, n)
+
+	err = writer.Close()
+	require.NoError(t, err)
+
+	reader, err := client.Open("/_test/create/1.txt")
+	require.NoError(t, err)
+
+	bytes, err := ioutil.ReadAll(reader)
+	require.NoError(t, err)
+	assert.Equal(t, "foobar", string(bytes))
+}
