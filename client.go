@@ -3,25 +3,41 @@ package hdfs
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
 	"os"
 	"os/user"
 	"strings"
+	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/colinmarc/hdfs/v2/hadoopconf"
 	hdfs "github.com/colinmarc/hdfs/v2/internal/protocol/hadoop_hdfs"
 	"github.com/colinmarc/hdfs/v2/internal/rpc"
+	"github.com/golang/protobuf/proto"
 	krb "gopkg.in/jcmturner/gokrb5.v5/client"
 )
+
+const leaseRenewInterval = 30 * time.Second
+
+type leaseRenewer struct {
+	closeCh chan struct{}
+	errCh   chan error
+	wg      sync.WaitGroup
+
+	filesWOpen uint64
+}
 
 // A Client represents a connection to an HDFS cluster
 type Client struct {
 	namenode *rpc.NamenodeConnection
 	defaults atomic.Value
 	options  ClientOptions
+
+	leaseRenewer
 }
 
 // ClientOptions represents the configurable options for a client.
@@ -118,6 +134,38 @@ func ClientOptionsFromConf(conf hadoopconf.HadoopConf) ClientOptions {
 	return options
 }
 
+func (c *Client) leaseRenew() error {
+	if atomic.LoadUint64(&c.filesWOpen) == 0 {
+		return nil
+	}
+	req := &hdfs.RenewLeaseRequestProto{
+		ClientName: proto.String(c.namenode.ClientName),
+	}
+	resp := &hdfs.RenewLeaseResponseProto{}
+
+	if err := c.namenode.Execute("renewLease", req, resp); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Client) leaseRenewerRun() {
+	defer c.wg.Done()
+	ticker := time.NewTicker(leaseRenewInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			if err := c.leaseRenew(); err != nil {
+				fmt.Fprintf(os.Stderr, "hdfs lease renew error: %+v\n", err)
+			}
+		case <-c.closeCh:
+			return
+		}
+	}
+}
+
 // NewClient returns a connected Client for the given options, or an error if
 // the client could not be created.
 func NewClient(options ClientOptions) (*Client, error) {
@@ -144,7 +192,12 @@ func NewClient(options ClientOptions) (*Client, error) {
 		return nil, err
 	}
 
-	return &Client{namenode: namenode, options: options}, nil
+	c := &Client{namenode: namenode, options: options, leaseRenewer: leaseRenewer{closeCh: make(chan struct{}), errCh: make(chan error)}}
+
+	c.wg.Add(1)
+	go c.leaseRenewerRun()
+
+	return c, nil
 }
 
 // New returns Client connected to the namenode(s) specified by address, or an
@@ -254,5 +307,7 @@ func (c *Client) fetchDefaults() (*hdfs.FsServerDefaultsProto, error) {
 
 // Close terminates all underlying socket connections to remote server.
 func (c *Client) Close() error {
+	close(c.closeCh)
+	c.wg.Wait()
 	return c.namenode.Close()
 }
