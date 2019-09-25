@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/user"
 	"strings"
+	"sync/atomic"
 
 	"github.com/colinmarc/hdfs/v2/hadoopconf"
 	hdfs "github.com/colinmarc/hdfs/v2/internal/protocol/hadoop_hdfs"
@@ -19,7 +20,7 @@ import (
 // A Client represents a connection to an HDFS cluster
 type Client struct {
 	namenode *rpc.NamenodeConnection
-	defaults *hdfs.FsServerDefaultsProto
+	defaults atomic.Value
 	options  ClientOptions
 }
 
@@ -233,8 +234,9 @@ func (c *Client) CopyToRemote(src string, dst string) error {
 }
 
 func (c *Client) fetchDefaults() (*hdfs.FsServerDefaultsProto, error) {
-	if c.defaults != nil {
-		return c.defaults, nil
+	d := c.defaults.Load()
+	if d != nil {
+		return d.(*hdfs.FsServerDefaultsProto), nil
 	}
 
 	req := &hdfs.GetServerDefaultsRequestProto{}
@@ -245,8 +247,9 @@ func (c *Client) fetchDefaults() (*hdfs.FsServerDefaultsProto, error) {
 		return nil, err
 	}
 
-	c.defaults = resp.GetServerDefaults()
-	return c.defaults, nil
+	r := resp.GetServerDefaults()
+	c.defaults.Store(r)
+	return r, nil
 }
 
 // Close terminates all underlying socket connections to remote server.
