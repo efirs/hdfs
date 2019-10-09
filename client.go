@@ -14,9 +14,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/colinmarc/hdfs/v2/hadoopconf"
-	hdfs "github.com/colinmarc/hdfs/v2/internal/protocol/hadoop_hdfs"
-	"github.com/colinmarc/hdfs/v2/internal/rpc"
+	"github.com/efirs/hdfs/v2/hadoopconf"
+	hdfs "github.com/efirs/hdfs/v2/internal/protocol/hadoop_hdfs"
+	"github.com/efirs/hdfs/v2/internal/rpc"
 	"github.com/golang/protobuf/proto"
 	krb "gopkg.in/jcmturner/gokrb5.v5/client"
 )
